@@ -1,4 +1,4 @@
-import { fetchSTT } from "@/lib";
+import { fetchSTT, NoTranscriptionError } from "@/lib";
 import { UseCompletionReturn } from "@/types";
 import { useMicVAD } from "@ricky0123/vad-react";
 import { LoaderCircleIcon, MicIcon, MicOffIcon } from "lucide-react";
@@ -75,10 +75,12 @@ const AutoSpeechVADInternal = ({
           audio: audioBlob,
         });
 
-        if (transcription) {
-          submit(transcription);
-        }
+        submit(transcription);
       } catch (error) {
+        if (error instanceof NoTranscriptionError) {
+          // Auto-listen heard non-speech audio (typing, noise). Drop it silently.
+          return;
+        }
         console.error("Failed to transcribe audio:", error);
         setState((prev: any) => ({
           ...prev,

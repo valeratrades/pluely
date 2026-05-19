@@ -1,3 +1,93 @@
-export * from "./config";
-export * from "./system-prompt.action";
-export * from "./chat-history.action";
+import { invoke } from "@tauri-apps/api/core";
+import type { AttachedFile, ChatConversation } from "@/types/completion";
+import type { SystemPrompt } from "@/types/system-prompts";
+
+// -- IPC-only types ----------------------------------------------------------
+// `ChatConversation`, `ChatMessage`, `AttachedFile` (in @/types/completion) and
+// `SystemPrompt` (in @/types/system-prompts) are the canonical shapes —
+// the Rust IPC schema mirrors them. Nothing else in this module needs to
+// re-export them.
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messageCount: number;
+}
+
+export interface NewMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  attachedFiles?: AttachedFile[];
+}
+
+export interface ConversationIdResponse {
+  id: string;
+  createdAt: number;
+}
+
+export interface AppendedMessageResponse {
+  id: string;
+  timestamp: number;
+}
+
+// -- chat history ------------------------------------------------------------
+
+export function listConversationSummaries(): Promise<ConversationSummary[]> {
+  return invoke("list_conversation_summaries");
+}
+
+export function loadConversation(id: string): Promise<ChatConversation> {
+  return invoke("load_conversation", { id });
+}
+
+export function startConversation(
+  title: string
+): Promise<ConversationIdResponse> {
+  return invoke("start_conversation", { title });
+}
+
+export function appendMessage(
+  conversationId: string,
+  message: NewMessage
+): Promise<AppendedMessageResponse> {
+  return invoke("append_message", { conversationId, message });
+}
+
+export function renameConversation(id: string, title: string): Promise<void> {
+  return invoke("rename_conversation", { id, title });
+}
+
+export function deleteConversation(id: string): Promise<void> {
+  return invoke("delete_conversation", { id });
+}
+
+export function deleteAllConversations(): Promise<void> {
+  return invoke("delete_all_conversations");
+}
+
+// -- system prompts ----------------------------------------------------------
+
+export function listSystemPrompts(): Promise<SystemPrompt[]> {
+  return invoke("list_system_prompts");
+}
+
+export function createSystemPrompt(
+  name: string,
+  prompt: string
+): Promise<SystemPrompt> {
+  return invoke("create_system_prompt", { name, prompt });
+}
+
+export function editSystemPrompt(
+  id: number,
+  name?: string,
+  prompt?: string
+): Promise<SystemPrompt> {
+  return invoke("edit_system_prompt", { id, name, prompt });
+}
+
+export function deleteSystemPrompt(id: number): Promise<void> {
+  return invoke("delete_system_prompt", { id });
+}

@@ -1,5 +1,13 @@
 import { Message } from "@/types";
 
+/**
+ * Derive a conversation title from the first user message.
+ * Currently a trim; lives here next to other small text helpers.
+ */
+export function generateConversationTitle(userMessage: string): string {
+  return userMessage.trim();
+}
+
 export function getByPath(obj: any, path: string): any {
   if (!path) return obj;
   return path

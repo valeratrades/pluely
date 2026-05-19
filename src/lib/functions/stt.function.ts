@@ -10,30 +10,40 @@ import { TYPE_PROVIDER } from "@/types";
 import curl2Json from "@bany/curl-to-json";
 import { shouldUsePluelyAPI } from "./pluely.api";
 
+/**
+ * Thrown when the STT provider returns a successful response that contains
+ * no transcribable speech (e.g. keyboard noise, silence, background hum).
+ * Callers in auto-listen modes should treat this as a discarded segment
+ * rather than a hard error.
+ */
+export class NoTranscriptionError extends Error {
+  constructor(message = "No transcription found") {
+    super(message);
+    this.name = "NoTranscriptionError";
+  }
+}
+
 // Pluely STT function
 async function fetchPluelySTT(audio: File | Blob): Promise<string> {
-  try {
-    // Convert audio to base64
-    const audioBase64 = await blobToBase64(audio);
+  // Convert audio to base64
+  const audioBase64 = await blobToBase64(audio);
 
-    // Call Tauri command
-    const response = await invoke<{
-      success: boolean;
-      transcription?: string;
-      error?: string;
-    }>("transcribe_audio", {
-      audioBase64,
-    });
+  // Call Tauri command
+  const response = await invoke<{
+    success: boolean;
+    transcription?: string;
+    error?: string;
+  }>("transcribe_audio", {
+    audioBase64,
+  });
 
-    if (response.success && response.transcription) {
-      return response.transcription;
-    } else {
-      return response.error || "Transcription failed";
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return `Pluely STT Error: ${errorMessage}`;
+  if (!response.success) {
+    throw new Error(response.error || "Transcription failed");
   }
+  if (!response.transcription || !response.transcription.trim()) {
+    throw new NoTranscriptionError();
+  }
+  return response.transcription;
 }
 
 export interface STTParams {
@@ -226,12 +236,13 @@ export async function fetchSTT(params: STTParams): Promise<string> {
     const transcription = (getByPath(data, path) || "").trim();
 
     if (!transcription) {
-      return [...warnings, "No transcription found"].join("; ");
+      throw new NoTranscriptionError();
     }
 
     // Return transcription with any warnings
     return [...warnings, transcription].filter(Boolean).join("; ");
   } catch (err) {
+    if (err instanceof NoTranscriptionError) throw err;
     const msg = err instanceof Error ? err.message : String(err);
     throw new Error(msg);
   }

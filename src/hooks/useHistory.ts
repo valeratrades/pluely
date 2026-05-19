@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  getAllConversations,
+  listConversationSummaries,
+  loadConversation,
   deleteConversation,
   DOWNLOAD_SUCCESS_DISPLAY_MS,
+  type ConversationSummary,
 } from "@/lib";
 import { ChatConversation } from "@/types/completion";
 
@@ -10,7 +12,7 @@ export type UseHistoryType = ReturnType<typeof useHistory>;
 
 export interface UseHistoryReturn {
   // State
-  conversations: ChatConversation[];
+  conversations: ConversationSummary[];
   selectedConversationId: string | null;
   viewingConversation: ChatConversation | null;
   downloadedConversations: Set<string>;
@@ -21,7 +23,7 @@ export interface UseHistoryReturn {
   // Actions
   handleViewConversation: (conversation: ChatConversation) => void;
   handleDownloadConversation: (
-    conversation: ChatConversation,
+    summary: ConversationSummary,
     e: React.MouseEvent
   ) => void;
   handleDeleteConfirm: (conversationId: string) => void;

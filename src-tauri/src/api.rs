@@ -1014,9 +1014,10 @@ pub async fn fetch_prompts() -> Result<PluelyPromptsResponse, String> {
     Ok(prompts_response)
 }
 
-// Create System Prompt API Command
+// Ask Pluely's backend to generate a system prompt from a short user description.
+// Distinct from the local-DB `create_system_prompt` command (which stores a row).
 #[tauri::command]
-pub async fn create_system_prompt(
+pub async fn generate_system_prompt_via_api(
     app: AppHandle,
     user_prompt: String,
 ) -> Result<SystemPromptResponse, String> {

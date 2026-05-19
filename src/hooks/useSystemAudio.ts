@@ -3,7 +3,7 @@ import { useWindowResize, useGlobalShortcuts } from ".";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useApp } from "@/contexts";
-import { fetchSTT, fetchAIResponse } from "@/lib/functions";
+import { fetchSTT, fetchAIResponse, NoTranscriptionError } from "@/lib/functions";
 import {
   DEFAULT_QUICK_ACTIONS,
   DEFAULT_SYSTEM_PROMPT,
@@ -314,24 +314,24 @@ export function useSystemAudio() {
                 timeoutPromise,
               ]);
 
-              if (transcription.trim()) {
-                setLastTranscription(transcription);
-                setError("");
+              setLastTranscription(transcription);
+              setError("");
 
-                const effectiveSystemPrompt = useSystemPrompt
-                  ? systemPrompt || DEFAULT_SYSTEM_PROMPT
-                  : contextContent || DEFAULT_SYSTEM_PROMPT;
+              const effectiveSystemPrompt = useSystemPrompt
+                ? systemPrompt || DEFAULT_SYSTEM_PROMPT
+                : contextContent || DEFAULT_SYSTEM_PROMPT;
 
-                const previousMessages = conversation.messages.map((msg) => {
-                  return { role: msg.role, content: msg.content };
-                });
+              const previousMessages = conversation.messages.map((msg) => {
+                return { role: msg.role, content: msg.content };
+              });
 
-                await processWithAI(
-                  transcription,
-                  effectiveSystemPrompt,
-                  previousMessages
-                );
-              } else {
+              await processWithAI(
+                transcription,
+                effectiveSystemPrompt,
+                previousMessages
+              );
+            } catch (sttError: any) {
+              if (sttError instanceof NoTranscriptionError) {
                 // No speech recognized (e.g. keyboard typing, background noise).
                 // Surface the same way as a too-short segment and skip AI.
                 setDiscardedNotice("no speech recognized");
@@ -341,11 +341,11 @@ export function useSystemAudio() {
                 discardedTimeoutRef.current = setTimeout(() => {
                   setDiscardedNotice("");
                 }, 3500);
+              } else {
+                console.error("STT Error:", sttError);
+                setError(sttError.message || "Failed to transcribe audio");
+                setIsPopoverOpen(true);
               }
-            } catch (sttError: any) {
-              console.error("STT Error:", sttError);
-              setError(sttError.message || "Failed to transcribe audio");
-              setIsPopoverOpen(true);
             }
           } catch (err) {
             setError("Failed to process speech");

@@ -40,7 +40,7 @@ export const GenerateSystemPrompt = ({
       setError(null);
 
       const response = await invoke<SystemPromptResponse>(
-        "create_system_prompt",
+        "generate_system_prompt_via_api",
         {
           userPrompt: userPrompt.trim(),
         }

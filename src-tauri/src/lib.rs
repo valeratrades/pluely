@@ -6,7 +6,9 @@ mod db;
 mod shortcuts;
 mod window;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager, WebviewWindow};
+#[cfg(target_os = "macos")]
+use tauri::{AppHandle, WebviewWindow};
+use tauri::Manager;
 use tauri_plugin_posthog::{init as posthog_init, PostHogConfig, PostHogOptions};
 use tokio::task::JoinHandle;
 mod speaker;
@@ -34,11 +36,6 @@ pub fn run() {
     // Get PostHog API key
     let posthog_api_key = option_env!("POSTHOG_API_KEY").unwrap_or("").to_string();
     let mut builder = tauri::Builder::default()
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:pluely.db", db::migrations())
-                .build(),
-        )
         .manage(AudioState::default())
         .manage(CaptureState::default())
         .manage(shortcuts::WindowVisibility {
@@ -101,9 +98,20 @@ pub fn run() {
             api::chat_stream_response,
             api::fetch_models,
             api::fetch_prompts,
-            api::create_system_prompt,
+            api::generate_system_prompt_via_api,
             api::check_license_status,
             api::get_activity,
+            db::commands::list_conversation_summaries,
+            db::commands::load_conversation,
+            db::commands::start_conversation,
+            db::commands::append_message,
+            db::commands::rename_conversation,
+            db::commands::delete_conversation,
+            db::commands::delete_all_conversations,
+            db::commands::list_system_prompts,
+            db::commands::create_system_prompt,
+            db::commands::edit_system_prompt,
+            db::commands::delete_system_prompt,
             speaker::start_system_audio_capture,
             speaker::stop_system_audio_capture,
             speaker::manual_stop_continuous,
@@ -118,6 +126,16 @@ pub fn run() {
             speaker::get_output_devices,
         ])
         .setup(|app| {
+            // SQLite (rusqlite) state. Mirrors what tauri-plugin-sql resolved
+            // for "sqlite:pluely.db": app_config_dir() + filename.
+            let db_path = app
+                .path()
+                .app_config_dir()
+                .expect("resolve app_config_dir")
+                .join("pluely.db");
+            let db = db::Db::open(db_path).expect("open pluely.db");
+            app.manage(db);
+
             // Setup main window positioning
             window::setup_main_window(app).expect("Failed to setup main window");
             #[cfg(target_os = "macos")]
