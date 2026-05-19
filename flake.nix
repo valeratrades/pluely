@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/549bd84d6279f9852cae6225e372cc67fb91a4c1";
     rust-overlay.url = "github:oxalica/rust-overlay/adf987c76af8d17b8256d23631bcf203f81e1a63";
     flake-parts.url = "github:hercules-ci/flake-parts/0678d8986be1661af6bb555f3489f2fdfc31f6ff";
-    v_flakes.url = "github:valeratrades/v_flakes/a5dc46fbbf76ae92fb6f96147a008d0429f9848d";
+    v_flakes.url = "github:valeratrades/v_flakes?ref=v1.6";
   };
 
   outputs = inputs@{ self, nixpkgs, rust-overlay, flake-parts, v_flakes, ... }:
@@ -33,7 +33,7 @@
 
           combined = v_flakes.utils.combine [
             github
-            { shellHook = ''
+            { shellHook = v_flakes.utils.mkShellHook ''
                 cp -f ${(files.gitattributes) { inherit pkgs; lfs = false; }} ./.gitattributes
               '';
             }
@@ -72,13 +72,13 @@
             npmDeps = pkgs.fetchNpmDeps {
               src = ./.;
               fetcherVersion = 2;
-              hash = "sha256-CNeyHQqGhm112a59+mTgWHkTxvkyM8iSNc35/XQZ4Po=";
+              hash = "sha256-PMBkc5PHR8K1bhLbMiE51p/XciCOPn9DCTrZG8s9iMw=";
             };
 
             npmFlags = [ "--legacy-peer-deps" ];
             cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
               src = ./src-tauri;
-              hash = "sha256-C3a4ZId21VRN6EDbbAVLRRPiX+B3MLQ2R/24fLUeXGE=";
+              hash = "sha256-OhBwVJv1QXHjrntJK70psy3KIIFCQrmNnV9oPPouOPM=";
             };
 
             nativeBuildInputs = [
